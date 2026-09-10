@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Emergency Services Finder</title>
+<meta name="description" content="Find nearby hospitals, police stations and pharmacies using your current browser location, with directions and SOS sharing tools." />
+<script>
+if (!sessionStorage.getItem("beacon_session")) window.location.replace("login.html");
+</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body class="app-body">
+<header class="topbar">
+  <div class="topbar__inner">
+    <a class="brand" href="#top" aria-label="Emergency Services Finder home">
+      <img class="brand__logo" src="logo.svg" alt="Emergency Services Finder logo">
+      <span class="brand__copy"><strong>Emergency Finder</strong><small>Group 5 · Academic Project</small></span>
+    </a>
+    <div class="topbar__right">
+      <div class="status-pill" id="statusPill"><span class="status-pill__dot" id="statusDot"></span><span id="statusText">Locating you…</span></div>
+      <div class="user-menu" id="userMenu">
+        <button class="user-menu__btn" id="userMenuBtn" aria-haspopup="true" aria-expanded="false"><span class="user-menu__avatar" id="userAvatar">U</span><span id="userNameLabel">Account</span><span class="chevron">⌄</span></button>
+        <div class="user-menu__dropdown" id="userDropdown">
+          <p class="user-menu__email" id="userEmailLabel"></p>
+          <button type="button" id="openFavoritesBtn">★ Favorite contacts</button>
+          <button type="button" id="logoutBtn">Log out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+<section class="dashboard-shell">
+  <aside class="side-panel">
+    <div class="side-intro">
+      <span class="live-kicker"><i></i> LIVE LOCATION</span>
+      <h1>Help is closer than you think.</h1>
+      <p>Locate essential emergency services around you and get moving fast.</p>
+    </div>
+    <div class="quick-actions">
+      <button class="btn btn--primary btn--wide" id="locateBtn"><span class="btn-icon">⌖</span> Find services near me</button>
+      <a class="btn btn--ghost btn--wide" href="#results"><span class="btn-icon">↓</span> View nearby results</a>
+    </div>
+    <div class="location-card" id="hud">
+      <div class="location-card__head"><span>YOUR POSITION</span><b>●</b></div>
+      <div class="coords"><div><small>LATITUDE</small><strong id="hudLat">—</strong></div><div><small>LONGITUDE</small><strong id="hudLng">—</strong></div></div>
+      <div class="accuracy"><span>Accuracy</span><strong id="hudAcc">—</strong></div>
+      <div class="updated"><span>Last updated</span><strong id="hudTime">—</strong></div>
+    </div>
+    <div class="emergency-note"><span>112</span><div><strong>India emergency number</strong><small>Use SOS for immediate options.</small></div></div>
+  </aside>
+
+  <section class="map-stage">
+    <div class="map-topline"><div><span class="eyebrow">NEARBY SERVICES</span><h2>Live emergency map</h2></div><div class="map-badge">OpenStreetMap data</div></div>
+    <div class="map-wrap"><div id="map" class="map" role="application" aria-label="Map showing nearby emergency services"></div><div class="map__legend"><span><i class="dot dot--hospital"></i>Hospitals</span><span><i class="dot dot--police"></i>Police</span><span><i class="dot dot--pharmacy"></i>Pharmacies</span><span><i class="dot dot--you"></i>You</span></div></div>
+  </section>
+</section>
+
+<section class="results-section" id="results">
+  <div class="section-heading"><div><span class="eyebrow">SEARCH & FILTER</span><h2>Services around you</h2><p>Sorted from nearest to farthest.</p></div><div class="radius"><label for="radiusSelect">Search radius</label><select id="radiusSelect"><option value="2000">2 km</option><option value="5000" selected>5 km</option><option value="10000">10 km</option><option value="20000">20 km</option></select></div></div>
+  <div class="filters" id="filters"><button class="chip chip--active" data-filter="all">All services</button><button class="chip" data-filter="hospital"><i class="dot dot--hospital"></i>Hospitals</button><button class="chip" data-filter="police"><i class="dot dot--police"></i>Police</button><button class="chip" data-filter="pharmacy"><i class="dot dot--pharmacy"></i>Pharmacies</button></div>
+  <div class="location-help" id="locationHelp" hidden></div>
+  <div class="results" id="resultsList"><div class="empty-state" id="emptyState"><div class="empty-icon">⌖</div><p>Ready to find nearby help.</p><p class="empty-state__sub">Select <strong>Find services near me</strong> and allow location access. Results come from OpenStreetMap.</p></div></div>
+</section>
+</main>
+
+<button id="sosBtn" class="sos" aria-label="Send SOS"><span class="sos__ring sos__ring--1"></span><span class="sos__ring sos__ring--2"></span><span class="sos__core"><span class="sos__word">SOS</span><span class="sos__hint">GET HELP</span></span></button>
+
+<div class="modal" id="sosChoiceModal" aria-hidden="true"><div class="modal__card"><button class="modal-x" onclick="document.getElementById('sosChoiceCancel').click()">×</button><p class="modal__eyebrow">Emergency mode</p><h3>How should we help?</h3><p class="modal__body">Choose an action. Your location is used only to prepare the message or emergency call.</p><div class="sos-choice"><button class="sos-choice__option" id="choiceFavorites" type="button"><span class="sos-choice__icon">★</span><span class="sos-choice__text"><span class="sos-choice__title">Alert my favorites</span><span class="sos-choice__desc">Prepare an SOS SMS with your live location</span></span><b>›</b></button><button class="sos-choice__option sos-choice__option--danger" id="choiceCall" type="button"><span class="sos-choice__icon">☎</span><span class="sos-choice__text"><span class="sos-choice__title">Call emergency services</span><span class="sos-choice__desc">Dial <span id="choiceCallNumber">112</span> after a short countdown</span></span><b>›</b></button></div><button class="btn btn--ghost btn--block" id="sosChoiceCancel" type="button">Cancel</button></div></div>
+
+<div class="modal" id="favSendModal" aria-hidden="true"><div class="modal__card"><p class="modal__eyebrow">Trusted contacts</p><h3>Send your location to…</h3><p class="modal__body">Select the people who should receive the SOS location message.</p><div class="fav-send-list" id="favSendList"></div><p class="field__error" id="favSendEmpty" style="display:none;">You haven't added any favorite contacts yet.</p><div class="modal__actions"><button class="btn btn--primary" id="favSendConfirm" type="button">Prepare SOS SMS</button><button class="btn btn--ghost" id="favWhatsAppBtn" type="button">Open WhatsApp</button><button class="btn btn--ghost" id="favSendCancel" type="button">Cancel</button></div><button class="modal__share" id="favSendManage" type="button">Manage favorite contacts</button></div></div>
+
+<div class="modal" id="sosModal" aria-hidden="true"><div class="modal__card modal__card--center"><div class="countdown-ring"><span id="sosCountdownVisual">3</span></div><p class="modal__eyebrow">Emergency call</p><h3 id="sosCountdownTitle">Calling emergency services in <span id="sosCountdown">3</span>…</h3><p class="modal__body">Your device will open the emergency dialer for <strong id="sosNumberDisplay">112</strong>.</p><div class="modal__actions"><button class="btn btn--danger" id="sosConfirmNow">Call now</button><button class="btn btn--ghost" id="sosCancel">Cancel</button></div><button class="modal__share" id="sosShareLoc">Share my location</button></div></div>
+
+<div class="modal" id="favModal" aria-hidden="true"><div class="modal__card modal__card--wide"><div class="modal-heading"><div><p class="modal__eyebrow">Personal safety</p><h3>Trusted contacts</h3></div><button class="close-btn" type="button" onclick="document.getElementById('favModalClose').click()">×</button></div><p class="modal__body">Saved only in this browser for this demo account. Add people you may want to alert quickly.</p><form id="favForm" class="auth-form fav-form" novalidate><label class="field"><span class="field__label">Name</span><input type="text" id="favName" required placeholder="e.g. Mom" /></label><label class="field"><span class="field__label">Phone number</span><input type="tel" id="favPhone" required placeholder="+91 98xxxxxxxx" /></label><p class="field__error" id="favFormError" role="alert"></p><button type="submit" class="btn btn--primary btn--block">+ Add contact</button></form><div class="fav-list" id="favList"></div><button class="btn btn--ghost btn--block" id="favModalClose" type="button">Close</button></div></div>
+<div class="toast" id="toast"></div>
+<footer class="footer"><strong>Emergency Services Finder</strong><span>Group 5 · 2nd Year Academic Project</span><small>Browser location · OpenStreetMap · Client-side demo</small></footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="auth.js"></script><script src="script.js"></script>
+</body></html>
